@@ -1,0 +1,59 @@
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      {% set liste = state_attr('sensor.kargo_kodlari_listesi', 'gecmis') %}
+      ### 📦 Kargo Takip Paneli
+      {% if liste and liste | length > 0 %}
+      **Son Gelen Kod:** `{{ liste[0].kod }}`{% if liste[0].firma | trim %} ({{ liste[0].firma | trim }}){% endif %}
+
+      **Alıcı ve Zaman:** {{ liste[0].kisi }} • {{ liste[0].zaman }}
+      <details><summary>📩 Son Mesajın Tamamını Gör</summary>
+
+      > {{ liste[0].mesaj }}
+      </details>
+
+      ---
+
+      #### Son 10 Kargo Geçmişi
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.2);">
+            <th style="padding: 8px 4px;">Alıcı</th>
+            <th style="padding: 8px 4px; text-align: center;">Kod</th>
+            <th style="padding: 8px 4px;">Firma</th>
+            <th style="padding: 8px 4px;">Tarih</th>
+            <th style="padding: 8px 4px; text-align: right;">Mesaj</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for kargo in liste -%}
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <td style="padding: 8px 4px; vertical-align: top;">{{ kargo.kisi }}</td>
+            <td style="padding: 8px 4px; text-align: center; vertical-align: top;"><code>{{ kargo.kod }}</code></td>
+            <td style="padding: 8px 4px; vertical-align: top;">{{ kargo.firma | trim }}</td>
+            <td style="padding: 8px 4px; vertical-align: top; white-space: nowrap;">{{ kargo.zaman }}</td>
+            <td style="padding: 8px 4px; text-align: right; vertical-align: top;">
+              <details style="text-align: left;">
+                <summary style="cursor: pointer; text-align: right;">Oku</summary>
+                <div style="margin-top: 6px; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 0.9em; white-space: normal; word-break: break-word;">
+                  {{ kargo.mesaj }}
+                </div>
+              </details>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      Henüz kayıtlı kargo kodu yok.
+      {% endif %}
+  - type: button
+    name: Kargo Geçmişini Temizle
+    icon: mdi:delete-sweep-outline
+    icon_height: 24px
+    tap_action:
+      action: call-service
+      service: rest_command.kargo_listesi_sifirla
+      confirmation:
+        text: Tüm kargo kayıtları silinecek, emin misiniz?

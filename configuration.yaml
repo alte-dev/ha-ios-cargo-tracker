@@ -1,0 +1,43 @@
+# Home Assistant Kargo Takip Yapılandırması
+# Bu bloğu kendi configuration.yaml dosyanızın en altına ekleyin.
+
+rest_command:
+  kargo_listesi_sifirla:
+    url: "https://YOUR_HOME_ASSISTANT_URL/api/webhook/kargo_sms_listesi"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    payload: '{"sifirla": true}'
+
+template:
+  - trigger:
+      - platform: webhook
+        webhook_id: kargo_sms_listesi
+        allowed_methods:
+          - POST
+        local_only: false
+    sensor:
+      - name: "Kargo Kodlari Listesi"
+        unique_id: kargo_kodlari_listesi
+        state: "{{ 'Temizlendi' if trigger.json.sifirla | default(false) else (trigger.json.kod | default('Kod Yok')) }}"
+        attributes:
+          son_guncelleme: "{{ now().strftime('%d.%m.%Y %H:%M') }}"
+          gecmis: >
+            {% if trigger.json.sifirla | default(false) %}
+              {{ [] }}
+            {% else %}
+              {% set mevcut = this.attributes.get('gecmis', []) %}
+              {% set yeni_kod = trigger.json.kod | default('-') | string %}
+              {% if mevcut | length > 0 and mevcut[0].kod | string == yeni_kod %}
+                {{ mevcut }}
+              {% else %}
+                {% set yeni_kayit = [{
+                  'kisi': trigger.json.kisi | default('Bilinmiyor'),
+                  'kod': yeni_kod,
+                  'firma': trigger.json.firma | default('-'),
+                  'mesaj': trigger.json.mesaj | default('Mesaj içeriği yok.'),
+                  'zaman': now().strftime('%d.%m.%Y %H:%M')
+                }] %}
+                {{ (yeni_kayit + mevcut)[:10] }}
+              {% endif %}
+            {% endif %}
